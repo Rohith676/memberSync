@@ -4,12 +4,14 @@ import com.aegis.membersync.service.MemberSyncService;
 
 public class MemberSyncApp {
 
-    public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 
-        MemberSyncService service = new MemberSyncService();
-        service.startScheduler(); // 🔥 starts auto sync
+		MemberSyncService service = new MemberSyncService();
+		service.startScheduler(); // 🔥 starts auto sync
 
-        // Keep app running
-        Thread.sleep(Long.MAX_VALUE);
-    }
+		Thread.sleep(Long.MAX_VALUE);
+
+		// Keep app running
+
+	}
 }

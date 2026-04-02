@@ -12,74 +12,69 @@ import java.util.logging.Logger;
 
 public class MemberSyncService {
 
-    private static final Logger LOGGER = Logger.getLogger(MemberSyncService.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(MemberSyncService.class.getName());
 
-    private DBService dbService = new DBService();
-    private ServiceNowService snService = new ServiceNowService();
+	private DBService dbService = new DBService();
+	private ServiceNowService snService = new ServiceNowService();
 
-    // 🔁 Scheduler - runs every 2 minutes
-    public void startScheduler() {
+	// 🔁 Scheduler - runs every 2 minutes
+	public void startScheduler() {
 
-        LOGGER.info("Starting Member Sync Scheduler...");
+		LOGGER.info("Starting Member Sync Scheduler...");
 
-        Timer timer = new Timer(true);
+		Timer timer = new Timer(true);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                sync();
-            }
-        }, 0, 2 * 60 * 1000); // 2 minutes
-    }
+		timer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				sync();
+			}
+		}, 0, 2 * 60 * 1000); // 2 minutes
+	}
 
-    // 🔄 Main Sync Logic
-    public void sync() {
+	// 🔄 Main Sync Logic
+	public void sync() {
 
-        LOGGER.info("Sync started...");
+		LOGGER.info("Sync started...");
 
-        try (Connection conn = dbService.getConnection()) {
+		try (Connection conn = dbService.getConnection()) {
 
-            List<MemberRequest> requests = dbService.getOpenRequests(conn);
+			List<MemberRequest> requests = dbService.getOpenRequests(conn);
 
-            LOGGER.info("Total OPEN requests: " + requests.size());
+			LOGGER.info("Total OPEN requests: " + requests.size());
 
-            for (MemberRequest req : requests) {
+			for (MemberRequest req : requests) {
 
-                try {
-                    LOGGER.info("Processing ticket: " + req.getRequestNumber());
+				try {
+					LOGGER.info("Processing ticket: " + req.getRequestNumber());
 
-                    // 🔥 Call ServiceNow
-                    MemberRequest updated =
-                            snService.getRequestDetails(req.getRequestNumber());
+					// 🔥 Call ServiceNow
+					MemberRequest updated = snService.getRequestDetails(req.getRequestNumber());
 
-                    if (updated == null) {
-                        LOGGER.warning("No response for: " + req.getRequestNumber());
-                        continue;
-                    }
-                 // ✅ LOG DB vs ServiceNow
-                    LOGGER.info("DB Status: " + req.getStatus() +
-                            " | SN Status: " + updated.getStatus());
+					if (updated == null) {
+						LOGGER.warning("No response for: " + req.getRequestNumber());
+						continue;
+					}
+					// ✅ LOG DB vs ServiceNow
+					LOGGER.info("DB Status: " + req.getStatus() + " | SN Status: " + updated.getStatus());
 
-                    // ✅ Update only if status changed
-                    if (!updated.getStatus().equalsIgnoreCase(req.getStatus())) {
+					// ✅ Update only if status changed
+					if (!updated.getStatus().equalsIgnoreCase(req.getStatus())) {
 
-                        dbService.updateRequest(conn, updated);
+						dbService.updateRequest(conn, updated);
 
-                        LOGGER.info("Updated ticket: " + req.getRequestNumber() +
-                                " → " + updated.getStatus());
-                    }
+						LOGGER.info("Updated ticket: " + req.getRequestNumber() + " → " + updated.getStatus());
+					}
 
-                } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE,
-                            "Error processing ticket: " + req.getRequestNumber(), ex);
-                }
-            }
+				} catch (Exception ex) {
+					LOGGER.log(Level.SEVERE, "Error processing ticket: " + req.getRequestNumber(), ex);
+				}
+			}
 
-            LOGGER.info("Sync completed successfully.");
+			LOGGER.info("Sync completed successfully.");
 
-
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Database connection or sync failed", e);
-        }
-    }
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "Database connection or sync failed", e);
+		}
+	}
 }
