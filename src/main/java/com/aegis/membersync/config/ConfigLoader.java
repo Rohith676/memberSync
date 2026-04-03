@@ -5,29 +5,36 @@ import java.util.Properties;
 
 public class ConfigLoader {
 
-    private static Properties props = new Properties();
+	private static Properties props = new Properties();
 
-    static {
-        try (InputStream input = ConfigLoader.class
-                .getClassLoader()
-                .getResourceAsStream("memberServiceConfiguration.properties")) {
+	static {
+		try (InputStream input = ConfigLoader.class.getClassLoader()
+				.getResourceAsStream("memberServiceConfiguration.properties")) {
 
-            props.load(input);
+			props.load(input);
 
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load config", e);
-        }
-    }
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to load config", e);
+		}
+	}
 
-    public static String get(String key) {
-        return props.getProperty(key);
-    }
+	public static String get(String key) {
+		return props.getProperty(key);
+	}
 
-    public static String getEnv() {
-        return props.getProperty("env");
-    }
+	public static String getEnv() {
 
-    public static String getEnvProperty(String key) {
-        return props.getProperty(getEnv() + "." + key);
-    }
+		String env = System.getProperty("env");
+
+		if (env != null && !env.isEmpty()) {
+			return env;
+		}
+
+		// fallback to properties file (default)
+		return props.getProperty("env", "dev");
+	}
+
+	public static String getEnvProperty(String key) {
+		return props.getProperty(getEnv() + "." + key);
+	}
 }

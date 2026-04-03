@@ -3,10 +3,16 @@ package com.aegis.membersync.service;
 import com.aegis.membersync.config.ConfigLoader;
 import com.aegis.membersync.model.MemberRequest;
 import com.aegis.membersync.util.HttpUtil;
+
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class ServiceNowService {
+	
+	private static final Logger LOGGER = Logger.getLogger(ServiceNowService.class.getName());
 
 	public MemberRequest getRequestDetails(String requestNumber) {
 
@@ -20,8 +26,8 @@ public class ServiceNowService {
 	        String password = ConfigLoader.getEnvProperty("password");
 	        
 	        // 🔹 LOG API CALL
-	        System.out.println("Calling ServiceNow API for: " + requestNumber);
-	        System.out.println("URL: " + url);
+            LOGGER.info("Calling ServiceNow API for ticket: " + requestNumber);
+            LOGGER.info("URL: " + url);
 
 	        String response = HttpUtil.get(url, username, password);
 
@@ -54,18 +60,20 @@ public class ServiceNowService {
 	            request.setClosedAt(closedAt);
 	            
 	            // 🔥 IMPORTANT LOG
-	            System.out.println("ServiceNow Response → Ticket: " + requestNumber +
+	            LOGGER.info("ServiceNow Response → Ticket: " + requestNumber +
 	                    " | State: " + state +
 	                    " | Closed By: " + closedByObj +
 	                    " | Closed At: " + closedAt);
 
 	            return request;
-	        }
+	        } else {
+                LOGGER.warning("No result found in ServiceNow for ticket: " + requestNumber);
+            }	
 
 	    } catch (Exception e) {
-	        System.out.println("Error fetching details for: " + requestNumber);
-	        e.printStackTrace();
-	    }
+            LOGGER.log(Level.SEVERE,
+                    "Error fetching details for ticket: " + requestNumber, e);
+        }
 
 	    return null;
 	}

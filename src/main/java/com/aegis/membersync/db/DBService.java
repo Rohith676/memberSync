@@ -6,8 +6,12 @@ import com.aegis.membersync.model.MemberRequest;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class DBService {
+	
+	private static final Logger LOGGER = Logger.getLogger(DBService.class.getName());
 
 	public Connection getConnection() throws Exception {
 		String url = ConfigLoader.getEnvProperty("db.url");
@@ -20,33 +24,42 @@ public class DBService {
 	/**
 	 * Fetch all OPEN requests from DB
 	 */
-	public List<MemberRequest> getOpenRequests(Connection conn) throws Exception {
-		List<MemberRequest> list = new ArrayList<>();
+	public List<MemberRequest> getOpenRequests() throws Exception {
 
-		String query = "SELECT TICKET_NUMBER, REQUEST_STATUS FROM MEMBER_SERVICE_REQUEST WHERE REQUEST_STATUS='OPEN'";
+	    List<MemberRequest> list = new ArrayList<>();
 
-		try (PreparedStatement ps = conn.prepareStatement(query); ResultSet rs = ps.executeQuery()) {
+	    String query = "SELECT TICKET_NUMBER, REQUEST_STATUS FROM MEMBER_SERVICE_REQUEST WHERE REQUEST_STATUS='OPEN'";
 
-			while (rs.next()) {
-				MemberRequest req = new MemberRequest();
-				req.setRequestNumber(rs.getString("TICKET_NUMBER"));
-				req.setStatus(rs.getString("REQUEST_STATUS"));
-				list.add(req);
-			}
-		}
+	    try (Connection conn = getConnection();
+	         PreparedStatement ps = conn.prepareStatement(query);
+	         ResultSet rs = ps.executeQuery()) {
 
-		return list;
-	}
+	        while (rs.next()) {
+	            MemberRequest req = new MemberRequest();
+	            req.setRequestNumber(rs.getString("TICKET_NUMBER"));
+	            req.setStatus(rs.getString("REQUEST_STATUS"));
+	            list.add(req);
+	        }
+	        LOGGER.info("Fetched OPEN requests count: " + list.size());
+	    } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error fetching OPEN requests", e);
+            throw e;
+        }
+
+	    return list;
+	} 
 
 	/**
 	 * Update request status + closed details Updates only if status has changed
 	 */
-	public void updateRequest(Connection conn, MemberRequest req) throws Exception {
+	public void updateRequest(MemberRequest req) throws Exception {
 
-		String update = "UPDATE MEMBER_SERVICE_REQUEST " + "SET REQUEST_STATUS = ?, CLOSED_BY = ?, CLOSED_AT = ? "
-				+ "WHERE TICKET_NUMBER = ? AND REQUEST_STATUS <> ?";
+	    String update = "UPDATE MEMBER_SERVICE_REQUEST " +
+                "SET REQUEST_STATUS = ?, CLOSED_BY = ?, CLOSED_AT = ? " +
+                "WHERE TICKET_NUMBER = ? AND REQUEST_STATUS <> ?";
 
-		try (PreparedStatement ps = conn.prepareStatement(update)) {
+	    try (Connection conn = getConnection();
+	            PreparedStatement ps = conn.prepareStatement(update)) {
 
 			ps.setString(1, req.getStatus());
 			ps.setString(2, req.getClosedBy());
@@ -63,10 +76,14 @@ public class DBService {
 			int rows = ps.executeUpdate();
 
 			if (rows > 0) {
-				System.out.println("Updated: " + req.getRequestNumber());
+				LOGGER.info("Updated ticket: " + req.getRequestNumber());
 			} else {
-				System.out.println("No change: " + req.getRequestNumber());
+				LOGGER.info("No change for ticket: " + req.getRequestNumber());
 			}
-		}
+		} catch (Exception e) {
+            LOGGER.log(Level.SEVERE,
+                    "Error updating ticket: " + req.getRequestNumber(), e);
+            throw e;
+        }
 	}
 }

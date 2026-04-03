@@ -35,46 +35,45 @@ public class MemberSyncService {
 	// 🔄 Main Sync Logic
 	public void sync() {
 
-		LOGGER.info("Sync started...");
+	    LOGGER.info("Sync started...");
 
-		try (Connection conn = dbService.getConnection()) {
+	    try {
 
-			List<MemberRequest> requests = dbService.getOpenRequests(conn);
+	        List<MemberRequest> requests = dbService.getOpenRequests();
 
-			LOGGER.info("Total OPEN requests: " + requests.size());
+	        LOGGER.info("Total OPEN requests: " + requests.size());
 
-			for (MemberRequest req : requests) {
+	        for (MemberRequest req : requests) {
 
-				try {
-					LOGGER.info("Processing ticket: " + req.getRequestNumber());
+	            try {
+	                LOGGER.info("Processing ticket: " + req.getRequestNumber());
 
-					// 🔥 Call ServiceNow
-					MemberRequest updated = snService.getRequestDetails(req.getRequestNumber());
+	                MemberRequest updated =
+	                        snService.getRequestDetails(req.getRequestNumber());
 
-					if (updated == null) {
-						LOGGER.warning("No response for: " + req.getRequestNumber());
-						continue;
-					}
-					// ✅ LOG DB vs ServiceNow
-					LOGGER.info("DB Status: " + req.getStatus() + " | SN Status: " + updated.getStatus());
+	                if (updated == null) {
+	                    LOGGER.warning("No response for: " + req.getRequestNumber());
+	                    continue;
+	                }
 
-					// ✅ Update only if status changed
-					if (!updated.getStatus().equalsIgnoreCase(req.getStatus())) {
+	                if (!updated.getStatus().equalsIgnoreCase(req.getStatus())) {
 
-						dbService.updateRequest(conn, updated);
+	                    dbService.updateRequest(updated);
 
-						LOGGER.info("Updated ticket: " + req.getRequestNumber() + " → " + updated.getStatus());
-					}
+	                    LOGGER.info("Updated: " + req.getRequestNumber() +
+	                            " → " + updated.getStatus());
+	                }
 
-				} catch (Exception ex) {
-					LOGGER.log(Level.SEVERE, "Error processing ticket: " + req.getRequestNumber(), ex);
-				}
-			}
+	            } catch (Exception ex) {
+	                LOGGER.log(Level.SEVERE,
+	                        "Error processing ticket: " + req.getRequestNumber(), ex);
+	            }
+	        }
 
-			LOGGER.info("Sync completed successfully.");
+	        LOGGER.info("Sync completed successfully.");
 
-		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Database connection or sync failed", e);
-		}
+	    } catch (Exception e) {
+	        LOGGER.log(Level.SEVERE, "Sync failed", e);
+	    }
 	}
 }

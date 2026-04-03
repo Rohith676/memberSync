@@ -4,14 +4,19 @@ import com.aegis.membersync.service.MemberSyncService;
 
 public class MemberSyncApp {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 
-		MemberSyncService service = new MemberSyncService();
-		service.startScheduler(); // 🔥 starts auto sync
+	    String env = args.length > 0 ? args[0] : "dev";
 
-		Thread.sleep(Long.MAX_VALUE);
+	    System.setProperty("env", env); // pass to ConfigLoader
 
-		// Keep app running
+	    MemberSyncService service = new MemberSyncService();
+	    service.startScheduler();
 
+	    try {
+	        Thread.sleep(Long.MAX_VALUE);
+	    } catch (InterruptedException e) {
+	        e.printStackTrace();
+	    }
 	}
 }
